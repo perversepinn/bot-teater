@@ -572,7 +572,23 @@ const commands = [
         .setName('pesan')
         .setDescription('Isi pesan')
         .setRequired(true)
-    )
+    ),
+  
+  new SlashCommandBuilder()
+  .setName('reply')
+  .setDescription('Balas pesan tertentu')
+  .addStringOption(option =>
+    option
+      .setName('messageid')
+      .setDescription('ID pesan yang mau dibalas')
+      .setRequired(true)
+  )
+  .addStringOption(option =>
+    option
+      .setName('pesan')
+      .setDescription('Isi balasan')
+      .setRequired(true)
+  )
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(TOKEN);
@@ -657,6 +673,38 @@ client.on('interactionCreate', async interaction => {
       });
     }
   }
+
+  if (interaction.commandName === 'reply') {
+  const messageId = interaction.options.getString('messageid');
+  const text = interaction.options.getString('pesan');
+
+  try {
+    const channel = interaction.channel;
+
+    const targetMessage = await channel.messages.fetch(messageId);
+
+    if (!targetMessage) {
+      return interaction.reply({
+        content: '❌ Pesan tidak ditemukan',
+        ephemeral: true
+      });
+    }
+
+    await targetMessage.reply(text);
+
+    return interaction.reply({
+      content: '📨 Balasan berhasil dikirim',
+      ephemeral: true
+    });
+  } catch (err) {
+    console.error(err);
+
+    return interaction.reply({
+      content: '❌ Gagal membalas pesan',
+      ephemeral: true
+    });
+  }
+}
 });
 
 client.login(TOKEN);
