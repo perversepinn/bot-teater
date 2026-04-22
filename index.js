@@ -234,7 +234,15 @@ async function clearBotAnnouncements(guild) {
 /* ====== BOT READY ====== */
 client.once('clientReady', async () => {
   console.log(`🤖 Bot aktif sebagai ${client.user.tag}`);
-
+client.user.setPresence({
+  activities: [
+    {
+      name: "my king's heartbeat",
+      type: 2
+    }
+  ],
+  status: 'online'
+});
   for (const guild of client.guilds.cache.values()) {
     await clearBotAnnouncements(guild);
     await updateLoket(guild, true);
