@@ -1,7 +1,9 @@
 const {
   Client,
   GatewayIntentBits,
-  PermissionsBitField
+  REST,
+  Routes,
+  SlashCommandBuilder
 } = require('discord.js');
 
 const client = new Client({
@@ -35,6 +37,9 @@ const {
 
 // ROLE ADMIN UNTUK OVERRIDE
 const ADMIN_ROLE_ID     = "1263153229668290591";
+const OWNER_ID = "863369610291314689";
+const CLIENT_ID = "1462924301026988062";
+const GUILD_ID = "948549667480805386";
 
 // JAM LOKET (WIB)
 // const OPEN_HOUR   = 20;
@@ -541,5 +546,117 @@ setInterval(async () => {
     console.error(err);
   }
 }, 2000);
+
+const commands = [
+  new SlashCommandBuilder()
+    .setName('announce')
+    .setDescription('Kirim pesan ke channel pengumuman')
+    .addStringOption(option =>
+      option
+        .setName('pesan')
+        .setDescription('Isi pesan')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('say')
+    .setDescription('Kirim pesan ke channel tertentu')
+    .addChannelOption(option =>
+      option
+        .setName('channel')
+        .setDescription('Pilih channel tujuan')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option
+        .setName('pesan')
+        .setDescription('Isi pesan')
+        .setRequired(true)
+    )
+].map(command => command.toJSON());
+
+const rest = new REST({ version: '10' }).setToken(TOKEN);
+
+(async () => {
+  try {
+    console.log('🔄 Mendaftarkan slash command...');
+
+    await rest.put(
+      Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+      { body: commands }
+    );
+
+    console.log('✅ Slash command berhasil didaftarkan');
+  } catch (error) {
+    console.error(error);
+  }
+})();
+
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isChatInputCommand()) return;
+
+  if (interaction.user.id !== OWNER_ID) {
+    return interaction.reply({
+      content: '❌ Kamu tidak punya izin menggunakan command ini',
+      ephemeral: true
+    });
+  }
+
+  if (interaction.commandName === 'announce') {
+    const text = interaction.options.getString('pesan');
+    const channel = interaction.guild.channels.cache.get(PENGUMUMAN_TEXT_ID);
+
+    if (!channel) {
+      return interaction.reply({
+        content: '❌ Channel pengumuman tidak ditemukan',
+        ephemeral: true
+      });
+    }
+
+    try {
+      await channel.send(text);
+
+      return interaction.reply({
+        content: '📨 Pesan berhasil dikirim ke channel pengumuman',
+        ephemeral: true
+      });
+    } catch (err) {
+      console.error(err);
+
+      return interaction.reply({
+        content: '❌ Gagal mengirim pesan',
+        ephemeral: true
+      });
+    }
+  }
+
+  if (interaction.commandName === 'say') {
+    const channel = interaction.options.getChannel('channel');
+    const text = interaction.options.getString('pesan');
+
+    if (!channel || !channel.isTextBased()) {
+      return interaction.reply({
+        content: '❌ Channel tidak valid',
+        ephemeral: true
+      });
+    }
+
+    try {
+      await channel.send(text);
+
+      return interaction.reply({
+        content: `📨 Pesan berhasil dikirim ke ${channel.name}`,
+        ephemeral: true
+      });
+    } catch (err) {
+      console.error(err);
+
+      return interaction.reply({
+        content: '❌ Gagal mengirim pesan',
+        ephemeral: true
+      });
+    }
+  }
+});
 
 client.login(TOKEN);
